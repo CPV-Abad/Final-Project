@@ -1,6 +1,7 @@
-import ctypes, time, win32process, wmi, sqlite3
+import ctypes, time, psutil, sqlite3
 import tkinter as tk
 from datetime import datetime
+from winProcess import getForegroundName, isApplication
 
 query = sqlite3.connect('database.db')
 
@@ -13,36 +14,20 @@ timer_text.pack(pady=20)
 def main():
     total_time_elapsed = 0
     date_now = datetime.now().strftime("%Y-%m-%d")
-    programSelection()
-    application = input("Enter which application you want to time: ")
-    for row in query.execute("SELECT * FROM logs WHERE date = ? and application = ?", (date_now, application + ".exe")):
+    application = programSelection()
+    print(application)
+    for row in query.execute("SELECT * FROM logs WHERE date = ? and application = ?", (date_now, application)):
         total_time_elapsed = total_time_elapsed + row[2]
     total_time_elapsed = timerStart(total_time_elapsed, application, snooze='n')
     print(total_time_elapsed)
     print("Total time elapsed: " + str(total_time_elapsed) + " seconds")
-
-
-def getAppName(hwnd):
-    """Acquire the name of the executables that are currently running"""
-    c = wmi.WMI()
-    exe = None
-    try:
-        _, process_id = win32process.GetWindowThreadProcessId(hwnd)
-        for program in c.query('SELECT Name FROM Win32_Process WHERE ProcessId = %s' % str(process_id)):
-            print(program.Name)
-            exe = program.Name
-            break
-    except:
-        return None
-    else:
-        return exe
 
 def timerInstance(application, total_limit_seconds, total_time_elapsed):
     """Counts up whenever the application is focused and returns the total time elapsed (seconds) when the time limit is reached"""
     date_now = datetime.now().strftime("%Y-%m-%d")
     time_elapsed = 0
     while time_elapsed < total_limit_seconds:
-        if getAppName(ctypes.windll.user32.GetForegroundWindow()) == application:
+        if getForegroundName(ctypes.windll.user32.GetForegroundWindow()) == application:
             time.sleep(1)
             time_elapsed += 1
             print(time_elapsed)
@@ -62,7 +47,7 @@ def timerStart (total_time_elapsed, application, snooze):
     if total_time_elapsed < total_limit_seconds or snooze == 'y':
         if total_time_elapsed < total_limit_seconds and snooze == 'n':
             total_limit_seconds = total_limit_seconds - total_time_elapsed
-        total_time_elapsed = total_time_elapsed + timerInstance(application + ".exe", total_limit_seconds, total_time_elapsed)
+        total_time_elapsed = total_time_elapsed + timerInstance(application, total_limit_seconds, total_time_elapsed)
         snooze = input("Time limit reached, would you like to snooze? (y/n):")
     else:    
         snooze = input("Time limit already reached, would you like to snooze? (y/n):")
@@ -82,13 +67,25 @@ def timerUpdate(total_time_elapsed, time_elapsed):
 
 def programSelection():
     """Lists all the currently running programs"""
-    c = wmi.WMI()
     program_list = []
-    for program in c.Win32_Process():
-        if program.Name not in program_list:
-            program_list.append(program.Name)
-    print(program_list)
-    programs_dropdown = tk.OptionMenu(root, tk.StringVar(), *program_list)
+    for program in psutil.process_iter(['pid', 'name']):
+        if isApplication(program.info['pid']) and program.info['name'] not in program_list:
+            program_list.append(program.info['name'])
+    selected_program = tk.StringVar()
+    selected_program.set("SELECT PROGRAM")
+    programs_dropdown = tk.OptionMenu(root, selected_program, *program_list)
     programs_dropdown.pack(pady=20)
 
-main()
+    def submitProgram():
+        global program_chosen
+        program_chosen = selected_program.get()
+        print(program_chosen)
+        root.quit()
+
+    submit_program = tk.Button(root, text="Submit", command=submitProgram)
+    submit_program.pack(pady=20)
+    root.mainloop()
+    return program_chosen
+
+if __name__ == "__main__":
+    main()
