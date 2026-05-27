@@ -1,4 +1,4 @@
-import win32gui, psutil, win32process, ctypes
+import win32gui, psutil, win32process
 
 def getForegroundName(hwnd):
     """Acquire the name of the executables that are currently running"""
