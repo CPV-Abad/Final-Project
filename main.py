@@ -1,32 +1,41 @@
 import ctypes, time, psutil, sqlite3
 import tkinter as tk
+from tkinter import messagebox, ttk
 from datetime import datetime
 from winProcess import getForegroundName, isApplication
-
-query = sqlite3.connect('database.db')
-
-root = tk.Tk()
-root.title("Program Screen Timer")
-root.geometry("800x600")
-timer_text = tk.Label(root, text="Program Screen Timer", font=("Arial", 24))
-timer_text.pack(pady=20)
 
 def main():
     total_time_elapsed = 0
     date_now = datetime.now().strftime("%Y-%m-%d")
+    history_button.pack(pady=20)
     application = programSelection()
-    print(application)
+    history_button.destroy()
     for row in query.execute("SELECT * FROM logs WHERE date = ? and application = ?", (date_now, application)):
         total_time_elapsed = total_time_elapsed + row[2]
-    total_time_elapsed = timerStart(total_time_elapsed, application, snooze='n')
+    total_time_elapsed = timerStart(total_time_elapsed, application, snooze = False)
     print(total_time_elapsed)
     print("Total time elapsed: " + str(total_time_elapsed) + " seconds")
+    main()
 
-def timerInstance(application, total_limit_seconds, total_time_elapsed):
+def showHistory():
+    history_button.destroy()
+    table = ttk.Treeview(root, columns = ('app', 'date', 'duration'), show = 'headings')
+    table.heading('app', text = 'Application')
+    table.heading('date', text = 'Date')
+    table.heading('duration', text = 'Total Duration')
+    table.pack(fill = 'both', expand = True)
+    Screentime_apps = query.execute("SELECT application, date, SUM(duration) FROM logs GROUP BY application, date ORDER BY application ASC")
+    
+    for app in Screentime_apps:
+        table.insert(parent='', index='end', values=(app[0], app[1], app[2]))
+        root.update()
+    return
+
+def timerInstance(application, total_limit, total_time_elapsed):
     """Counts up whenever the application is focused and returns the total time elapsed (seconds) when the time limit is reached"""
     date_now = datetime.now().strftime("%Y-%m-%d")
     time_elapsed = 0
-    while time_elapsed < total_limit_seconds:
+    while time_elapsed < total_limit:
         if getForegroundName(ctypes.windll.user32.GetForegroundWindow()) == application:
             time.sleep(1)
             time_elapsed += 1
@@ -39,20 +48,58 @@ def timerInstance(application, total_limit_seconds, total_time_elapsed):
 
 def timerStart (total_time_elapsed, application, snooze):
     """Initializes the timer """
-    limit_hours = int(input("Enter time limit(hours): "))
-    limit_minute = int(input("Enter time limit(minutes): "))
-    limit_seconds = int(input("Enter time limit(seconds): "))
-    total_limit_seconds = (limit_hours * 3600) + (limit_minute * 60) + limit_seconds
+    def getTimeLimit():
+        try:
+            global total_limit_seconds
+            limit_hours = int(input_hours.get())
+            limit_minute = int(input_minutes.get())
+            limit_seconds = int(input_seconds.get())
+            
+            if limit_hours < 24 and limit_minute < 60 and limit_seconds < 60:
+                total_limit_seconds = (limit_hours * 3600) + (limit_minute * 60) + limit_seconds
+                print(total_limit_seconds)
+                root.quit()
+            else:
+                timer_text.config(text="Invalid time limit. Please enter valid time.")
+                return
+        except ValueError:
+            timer_text.config(text="Invalid time limit. Please enter valid time.")
+            return
 
-    if total_time_elapsed < total_limit_seconds or snooze == 'y':
-        if total_time_elapsed < total_limit_seconds and snooze == 'n':
-            total_limit_seconds = total_limit_seconds - total_time_elapsed
-        total_time_elapsed = total_time_elapsed + timerInstance(application, total_limit_seconds, total_time_elapsed)
-        snooze = input("Time limit reached, would you like to snooze? (y/n):")
+    input_hours = tk.Entry(root)
+    input_minutes = tk.Entry(root)
+    input_seconds = tk.Entry(root)
+    input_minutes = tk.Entry(root)
+    input_hours.pack(pady=10)
+    input_minutes.pack(pady=10)
+    input_seconds.pack(pady=10)
+    
+    submit_limit = tk.Button(root, text="Submit", command=getTimeLimit)
+    submit_limit.pack(pady=20)
+    root.mainloop()
+    total_limit = total_limit_seconds
+
+    input_hours.destroy()
+    input_minutes.destroy()
+    input_seconds.destroy()
+    submit_limit.destroy()
+
+
+    if total_time_elapsed < total_limit or snooze is True:
+        if total_time_elapsed < total_limit and snooze is False:
+            total_limit = total_limit - total_time_elapsed
+        total_time_elapsed = total_time_elapsed + timerInstance(application, total_limit, total_time_elapsed)
+        root.attributes("-topmost", True)
+        root.update()
+        root.attributes("-topmost", False)
+        snooze = messagebox.askyesno(title="Snooze", message="Time limit reached.", detail="Would you like to snooze?", parent=root)
     else:    
-        snooze = input("Time limit already reached, would you like to snooze? (y/n):")
+        root.attributes("-topmost", True)
+        root.update()
+        root.attributes("-topmost", False)
+        snooze = messagebox.askyesno(title="Snooze", message="Time limit is already reached.", detail="Would you like to snooze?", parent=root)
 
-    if snooze == 'y':
+    if snooze is True:
         timerStart(total_time_elapsed, application, snooze)
     return total_time_elapsed
 
@@ -79,13 +126,24 @@ def programSelection():
     def submitProgram():
         global program_chosen
         program_chosen = selected_program.get()
-        print(program_chosen)
-        root.quit()
+        if program_chosen != "SELECT PROGRAM":
+            print(program_chosen)
+            root.quit()
 
     submit_program = tk.Button(root, text="Submit", command=submitProgram)
     submit_program.pack(pady=20)
     root.mainloop()
+    submit_program.destroy()
+    programs_dropdown.destroy()
     return program_chosen
 
+
 if __name__ == "__main__":
+    root = tk.Tk()
+    root.title("Program Screen Timer")
+    root.geometry("800x600")
+    timer_text = tk.Label(root, text="Program Screen Timer", font=("Arial", 24))
+    timer_text.pack(pady=20)
+    history_button = tk.Button(root, text="Screentime History", command=showHistory)
+    query = sqlite3.connect('database.db')
     main()
