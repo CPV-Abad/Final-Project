@@ -1,7 +1,7 @@
 import win32gui, psutil, win32process
 
 def getForegroundName(hwnd):
-    """Acquire the name of the executables that are currently running"""
+    """Acquire the name of the executables that are currently focused"""
     exe = None
     try:
         _, pid = win32process.GetWindowThreadProcessId(hwnd)
@@ -17,8 +17,7 @@ def getForegroundName(hwnd):
 
 def isApplication(pid):
     """
-    Checks if a given Process ID belongs to a visible application
-    rather than a background process.
+    Checks if a Process ID belongs is an application with a corresponding window.
     """
     try:
         # Check if the process has any window handles associated with it
