@@ -28,6 +28,7 @@ def isApplication(pid):
                     windows.append(hwnd)
             return True
 
+        # Enumerate windows
         win32gui.EnumWindows(enumerateWindows, pid)
         
         # If it has a visible window and a title, it's an application

@@ -208,7 +208,6 @@ def timerStart (total_time_elapsed, application, snooze):
         instance_elapsed = timerInstance(application, total_limit, total_time_elapsed)
         total_time_elapsed = total_time_elapsed + instance_elapsed
 
-
         # Ask user if timer should be snoozed
         if instance_elapsed == total_limit or total_time_elapsed == total_limit:
             root.attributes("-topmost", True)
