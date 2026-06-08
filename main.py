@@ -1,9 +1,10 @@
-import ctypes, time, psutil, sqlite3
+import ctypes, psutil, sqlite3, time
 import tkinter as tk
 import ttkbootstrap as ttk
+from datetime import datetime, timedelta
+from pygame import mixer
 from ttkbootstrap import Style
 from tkinter import messagebox
-from datetime import datetime, timedelta
 from winProcess import getForegroundName, isApplication
 
 def main():
@@ -13,14 +14,16 @@ def main():
     date_now = datetime.now().strftime("%Y-%m-%d")
     
     # Set GUI dimension for home frame
-    root.geometry("400x200")
+    root.geometry("400x250")
 
     # Initialize button to access history page
-    history_button = tk.Button(home_frame, text="Screentime History", command=showHistory)
+    history_button = tk.Button(home_frame, text="See Screentime History", command=showHistory)
     history_button.grid(row=0, column=0, columnspan=2, pady=20)
 
     # Check for selected programs
     application = programSelection()
+
+    # Remove history button
     history_button.destroy()
 
     # Get total elapsed time of the selected program for the current date
@@ -30,7 +33,7 @@ def main():
     # Begin timer
     timerStart(total_time_elapsed, application, snooze = False)
 
-    # Loop main function once timer is done
+    # Loop main once timer is done
     main()
 
 def showHistory():
@@ -47,7 +50,7 @@ def showHistory():
     
     # Initialize history frame and widgets
     root.geometry("750x700")
-    timer_text.config(text="Screentime History")
+    timer_text.config(text="SCREENTIME HISTORY")
     history_frame = tk.Frame(root)
     history_frame.columnconfigure((0,1), weight=1)
     history_frame.rowconfigure((0,2), weight=1)
@@ -65,7 +68,7 @@ def showHistory():
         """ Returns to home frame when return home button is pressed"""
         history_frame.pack_forget()
         home_frame.pack()
-        timer_text.config(text="Program Screen Time")
+        timer_text.config(text="PROGRAM TIMER")
         root.geometry("400x300")
         root.update()
 
@@ -73,18 +76,19 @@ def showHistory():
         """Tabulate the date and duration of the selected application
         from the database"""
         global app_selected
-        if selected_app.get() != "SELECT PROGRAM":
-            app_selected = selected_app.get()
-            Screentime_data = query.execute("SELECT date, SUM(duration) FROM logs WHERE application =? GROUP BY date", (app_selected,))
-        
+
         # Clear table
         for entry in table.get_children():
             table.delete(entry)
 
-        # Populate table with new data
-        for row in Screentime_data:
-            table.insert(parent="", index="end", values=(row[0], timedelta(seconds=row[1])))
-            root.update()
+        if selected_app.get() != "SELECT PROGRAM":
+            app_selected = selected_app.get()
+            Screentime_data = query.execute("SELECT date, SUM(duration) FROM logs WHERE application =? GROUP BY date", (app_selected,))
+
+            # Populate table with new data
+            for row in Screentime_data:
+                table.insert(parent="", index="end", values=(row[0], timedelta(seconds=row[1])))
+                root.update()
 
     # Initialize Submit button
     submit_program = tk.Button(history_frame, text="Show History", command=submitProgram)
@@ -203,28 +207,36 @@ def timerStart (total_time_elapsed, application, snooze):
             total_limit = total_limit - total_time_elapsed
         instance_elapsed = timerInstance(application, total_limit, total_time_elapsed)
         total_time_elapsed = total_time_elapsed + instance_elapsed
-        root.attributes("-topmost", True)
-        root.update()
-        root.attributes("-topmost", False)
+
 
         # Ask user if timer should be snoozed
         if instance_elapsed == total_limit or total_time_elapsed == total_limit:
+            root.attributes("-topmost", True)
+            root.update()
+            mixer.music.load("alarm.mp3")
+            mixer.music.play(loops=3)
             snooze = messagebox.askyesno(title="Snooze", message="Time limit reached.", detail="Would you like to snooze?", parent=root)
+            mixer.music.stop()
         else:
             snooze = False
     else:    
         # Ask user if timer should be snoozed
         root.attributes("-topmost", True)
         root.update()
-        root.attributes("-topmost", False)
+        mixer.music.load("alarm.mp3")
+        mixer.music.play(loops=3)
         snooze = messagebox.askyesno(title="Snooze", message="Time limit is already reached.", detail="Would you like to snooze?", parent=root)
+        mixer.music.stop()
+
+    # Disable pop-up
+    root.attributes("-topmost", False)
 
     # Reset timer if snoozed
     if snooze is True:
         timerStart(total_time_elapsed, application, snooze)
 
     # Return to home frame
-    timer_text.config(text="Program Screen Time", font=("Franklin Gothic Heavy", 24))
+    timer_text.config(text="PROGRAM TIMER", font=("Franklin Gothic Heavy", 24))
     home_frame.pack()
     root.update()
     
@@ -232,23 +244,32 @@ def timerStart (total_time_elapsed, application, snooze):
 
 def timerUpdate(total_time_elapsed, time_elapsed):
     """Updates the timer text on the GUI"""
+    # Current time elapsed calculation
     current_time_elapsed = total_time_elapsed + time_elapsed
     hours_elapsed = current_time_elapsed // 3600
     minutes_elapsed = (current_time_elapsed % 3600) // 60
     second_elapsed = current_time_elapsed % 60
+    
+    # Update GUI text
     timer_text.config(text= str(hours_elapsed).zfill(2) + " : " + str(minutes_elapsed).zfill(2) + " : " + str(second_elapsed).zfill(2))
     root.update()
 
 def programSelection():
     """Lists all the currently running programs"""
+    # initialize program list variable
     program_list = ["SELECT PROGRAM"]
 
     def updateProgramlist():
         """List all running non-background program in the dropdown menu"""
         nonlocal program_list
+
+        # Iterate over running processes
         for program in psutil.process_iter(["pid", "name"]):
+            # Append process to program list if it has a window handle
             if isApplication(program.info["pid"]) and program.info["name"] not in program_list:
                 program_list.append(program.info["name"])
+        
+        # Update choices in drop down menu
         programs_dropdown["values"] = program_list
 
     def submitProgram():
@@ -279,8 +300,9 @@ if __name__ == "__main__":
     # Initialize GUI
     root = tk.Tk()
     style = Style(theme="vapor")
-    root.title("Program Screen Time")
-    timer_text = tk.Label(root, text="PROGRAM SCREEN TIME", font=("Franklin Gothic Heavy", 24))
+    root.title("Program Timer")
+    timer_text = tk.Label(root, text="PROGRAM TIMER", font=("Franklin Gothic Heavy", 24))
+    mixer.init()
     timer_text.pack(pady=20)
 
     # Initialize Home Frame
@@ -296,5 +318,5 @@ if __name__ == "__main__":
     # Connect to database
     query = sqlite3.connect('database.db')
 
-    # Start main program
+    # Start main
     main()

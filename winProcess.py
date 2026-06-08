@@ -7,7 +7,6 @@ def getForegroundName(hwnd):
         _, pid = win32process.GetWindowThreadProcessId(hwnd)
         for program in psutil.process_iter(['pid', 'name']):
             if program.info['pid'] == pid:
-                print(program.info['name'])
                 exe = program.info['name']
                 break
     except:
