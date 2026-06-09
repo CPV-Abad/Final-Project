@@ -1,7 +1,6 @@
 # Program Timer
-#### Video Demo:  <URL HERE>
 #### Description:
-A Python application that acts as a timer for a program of a user's choice. It also keeps logs of the instances whenever the timer is initiated, which may help the user keep track of their screentime with the specified programs. 
+A Python application that acts as a timer for a program of a user's choice. It also keeps logs of the instances whenever the timer is initiated, which may help the user keep track of their screentime with the specified programs.
 
 ## Functionalities:
 
@@ -20,3 +19,22 @@ The application keeps track of the user's daily screentime per application by lo
 + Tkinter
 + Ttkbootstrap
 
+## How to use program:
+### Downloading and running the program:
+1. Install all requirements as enumerated in the previous section.
+2. Download the program by running this command in your terminal: __git clone https://github.com/CPV-Abad/Final-Project.git__ or by manually downloading all files from the main branch
+3. Navigate to where the files are downloaded then run py main.py in your terminal
+
+### Timer:
+1. Select your desired application to time via the dropdown menu and pressing the submit button. _The application must be running in order for this program to include it from the selection._
+2. Enter a time limit, formatted as _HH:MM:SS_.
+3. Press start and wait until designated time limit has been reached. Alternatively, manually stop the timer.
+4. If the time limit has been reached, choose whether to snooze or stop the timer.
+5. If snoozed repeat step until program has been stopped.
+
+#### Screentime History page
+1. Press the "See Screentime History" button from the home menu
+2. Select a program from the menu and press the "Show History" button
+3. The total daily screentime duration would be displayed, sorted by date.
+4. Repeat step 2 to select a different program.
+5. Press the "Home" button to return to the home menu.
