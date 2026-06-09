@@ -15,8 +15,8 @@ The application keeps track of the users daily screentime per application by log
 + Python3
 + Sqlite3
 + Psutils
++ Pygame
 + Pywin32
-+ Pyame
 + Tkinter
 + Ttkbootstrap
 
