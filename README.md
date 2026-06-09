@@ -11,7 +11,7 @@ Essentially, this application works like a timer where the user specifies a prog
 ### Screentime History:
 The application keeps track of the users daily screentime per application by logging each timer instance to an SQL database. The user can preview these logs by pressing the "See Screentime History" button, then selecting the program whose screentime history they wanted to preview.
 
-### Requirements:
+## Requirements:
 + Python3
 + Sqlite3
 + Psutils
