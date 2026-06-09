@@ -17,6 +17,6 @@ The application keeps track of the users daily screentime per application by log
 + Psutils
 + Pywin32
 + Pyame
-+ tkinter
-+ ttkbootstrap
++ Tkinter
++ Ttkbootstrap
 
