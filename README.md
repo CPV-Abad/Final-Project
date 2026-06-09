@@ -1,4 +1,4 @@
-# Program timer
+# Program Timer
 #### Video Demo:  <URL HERE>
 #### Description:
 A Python application that acts as a timer for a program of a user's choice. It also keeps logs of the instances whenever the timer is initiated, which may help the user keep track of their screentime with the specified programs. 
